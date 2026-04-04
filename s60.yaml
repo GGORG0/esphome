@@ -1,0 +1,88 @@
+packages:
+  base: !include common/base.yaml
+
+substitutions:
+  device_name: s60
+  friendly_name: S60
+
+  ota_password: !secret s60_ota_password
+  api_key: !secret s60_api_key
+
+  update_interval: 5s
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+web_server:
+  sorting_groups:
+    - id: group_power
+      name: Power
+
+# ---
+
+status_led:
+  pin:
+    number: GPIO5
+    inverted: true
+
+switch:
+  - id: switch_1
+    platform: gpio
+    name: ${friendly_name} Relay
+    icon: mdi:electric-switch
+    pin: GPIO4
+    restore_mode: RESTORE_DEFAULT_ON
+
+binary_sensor:
+  - platform: gpio
+    id: button_1
+    internal: true
+    pin:
+      number: GPIO9
+      inverted: true
+    on_press:
+      - switch.toggle: switch_1
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+
+sensor:
+  - platform: cse7766
+    voltage:
+      &common_sensor
+      name: ${friendly_name} Voltage
+      icon: mdi:current-ac
+      web_server:
+        sorting_group_id: group_power
+      filters:
+        - throttle_average: ${update_interval}
+    current:
+      <<: *common_sensor
+      name: ${friendly_name} Current
+    power:
+      <<: *common_sensor
+      name: ${friendly_name} Power
+      icon: mdi:lightning-bolt
+    energy:
+      <<: *common_sensor
+      name: ${friendly_name} Energy
+      icon: mdi:lightning-bolt
+    apparent_power:
+      <<: *common_sensor
+      name: ${friendly_name} Apparent power
+      icon: mdi:lightning-bolt-circle
+    reactive_power:
+      <<: *common_sensor
+      name: ${friendly_name} Reactive power
+      icon: mdi:engine
+    power_factor:
+      <<: *common_sensor
+      name: ${friendly_name} Power factor
+      icon: mdi:fraction-one-half
+
+uart:
+  rx_pin: GPIO7
+  baud_rate: 4800
+  parity: EVEN

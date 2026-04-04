@@ -1,0 +1,112 @@
+packages:
+  base: !include common/base.yaml
+
+substitutions:
+  device_name: tauronplug
+  friendly_name: TauronPlug
+
+  ota_password: !secret tauronplug_ota_password
+  api_key: !secret tauronplug_api_key
+
+esp8266:
+  board: esp01_1m
+
+external_components:
+  - source: my_components
+
+web_server:
+  sorting_groups:
+    - id: group_power
+      name: Power
+
+# ---
+
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+
+# ---
+
+sensor:
+  - platform: ade7763
+    voltage:
+      &common_sensor
+      name: ${friendly_name} Voltage
+      icon: mdi:current-ac
+      web_server:
+        sorting_group_id: group_power
+    current:
+      <<: *common_sensor
+      name: ${friendly_name} Current
+    power:
+      <<: *common_sensor
+      name: ${friendly_name} Power
+      icon: mdi:lightning-bolt
+    cs_pin: GPIO15
+    reset_pin: GPIO16
+    update_interval: 5s
+
+  - platform: dallas_temp
+    address: 0x59000006AFADBC28
+    name: ${friendly_name} Temperature
+    icon: mdi:thermometer
+    entity_category: diagnostic
+
+light:
+  - platform: rgb
+    name: ${friendly_name} RGB LED
+    icon: mdi:led-on
+    red: output_component1
+    green: output_component2
+    blue: output_component3
+    id: rgb_light
+    entity_category: config
+
+output:
+  - platform: esp8266_pwm
+    id: output_component1
+    pin: GPIO0
+    inverted: true
+    max_power: 100%
+
+  - platform: esp8266_pwm
+    id: output_component2
+    pin: GPIO1
+    inverted: true
+    max_power: 100%
+
+  - platform: esp8266_pwm
+    id: output_component3
+    pin: GPIO2
+    inverted: true
+    max_power: 100%
+
+switch:
+  - id: switch_1
+    platform: gpio
+    name: ${friendly_name} Relay
+    icon: mdi:electric-switch
+    pin: GPIO5
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - light.turn_on: rgb_light
+    on_turn_off:
+      - light.turn_off: rgb_light
+
+binary_sensor:
+  - platform: gpio
+    id: button_1
+    internal: true
+    pin:
+      number: GPIO3
+      mode: INPUT_PULLUP
+    on_press:
+      - switch.toggle: switch_1
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms

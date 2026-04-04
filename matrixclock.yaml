@@ -1,0 +1,81 @@
+packages:
+  base: !include common/base.yaml
+
+substitutions:
+  device_name: matrixclock
+  friendly_name: MatrixClock
+
+  ota_password: !secret matrixclock_ota_password
+  api_key: !secret matrixclock_api_key
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+# ---
+
+font:
+  - file: "assets/ter-u12n.bdf"
+    id: ter_u12n
+  - file: "assets/ter-u24b.bdf"
+    id: ter_u24b
+
+ota:
+  - id: !extend esphome_ota
+    on_begin:
+      then:
+        - display.page.show: ota_page
+        - component.update: matrix_display
+        - component.suspend: matrix_display
+    on_error:
+      then:
+        - component.resume: matrix_display
+        - display.page.show: clock_page
+        - component.update: matrix_display
+
+display:
+  - platform: hub75
+    id: matrix_display
+    panel_width: 64
+    panel_height: 32
+    double_buffer: true
+
+    r1_pin: GPIO1
+    g1_pin: GPIO2
+    b1_pin: GPIO3
+    g2_pin: GPIO4
+    r2_pin: GPIO5
+    b2_pin: GPIO6
+    b_pin: GPIO7
+    a_pin: GPIO8
+    d_pin: GPIO9
+    c_pin: GPIO10
+    lat_pin: GPIO11
+    clk_pin: GPIO12
+    oe_pin: GPIO13
+
+    pages:
+      - id: clock_page
+        lambda: |-
+          std::string status = "";
+
+          if (id(base_wifi).is_ap_active()) {
+            status += 'A';
+          }
+
+          if (!id(base_wifi).is_connected()) {
+            status += 'W';
+          }
+
+          if (!id(sntp_time).now().is_valid()) {
+            status += 'T';
+          }
+
+          it.strftime(it.get_width() / 2, 0, id(ter_u24b), TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
+          it.strftime(it.get_width(), it.get_height(), id(ter_u12n), TextAlign::BOTTOM_RIGHT, "%S", id(sntp_time).now());
+          it.print(1, it.get_height(), id(ter_u12n), Color(255, 0, 0), TextAlign::BOTTOM_LEFT, status.c_str());
+
+      - id: ota_page
+        lambda: |-
+          it.print(it.get_width() / 2, it.get_height() / 2, id(ter_u24b), TextAlign::CENTER, "OTA");
