@@ -1,0 +1,9 @@
+$schema: "https://raw.githubusercontent.com/chri11g6/sops-schema/refs/heads/master/sops.schema.json"
+
+keys:
+  - &ggorg-pc age1mtnlp6d7hnvxq8gskm530qq05wv6u3p2zr58j4vfvhjfvttcfvvsk6l72r
+
+creation_rules:
+  - path_regex: "^secrets\\.sops\\.yaml$"
+    age: 
+      - *ggorg-pc
