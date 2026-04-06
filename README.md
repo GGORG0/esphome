@@ -2,7 +2,7 @@
 
 ## Secrets
 
-Secrets are encrypted using sops.
+Secrets are encrypted using [sops](https://github.com/getsops/sops).
 
 ```
 sops decrypt secrets.sops.yaml > secrets.yaml
