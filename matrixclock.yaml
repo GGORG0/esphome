@@ -79,3 +79,22 @@ display:
       - id: ota_page
         lambda: |-
           it.print(it.get_width() / 2, it.get_height() / 2, id(ter_u24b), TextAlign::CENTER, "OTA");
+
+output:
+  - platform: template
+    id: brightness
+    type: float
+    write_action:
+      - hub75.set_brightness: 
+          id: matrix_display
+          brightness: !lambda 'return (int)(state * 255);'
+
+light:
+  - platform: monochromatic
+    name: ${friendly_name} Brightness
+    output: brightness
+    restore_mode: RESTORE_DEFAULT_ON
+    initial_state:
+      state: True
+      brightness: 0.5
+    default_transition_length: 0s
