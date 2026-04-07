@@ -61,7 +61,7 @@ display:
           std::string status = "";
 
           if (id(base_wifi).is_ap_active()) {
-            status += 'A';
+            status += 'C';
           }
 
           if (!id(base_wifi).is_connected()) {
@@ -70,6 +70,10 @@ display:
 
           if (!id(sntp_time).now().is_valid()) {
             status += 'T';
+          }
+
+          if (!id(native_api).is_connected_with_state_subscription()) {
+            status += 'A';
           }
 
           it.strftime(it.get_width() / 2, 0, id(ter_u24b), TextAlign::TOP_CENTER, "%H:%M", id(sntp_time).now());
