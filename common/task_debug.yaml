@@ -1,0 +1,129 @@
+esp32:
+  framework:
+    sdkconfig_options:
+      CONFIG_FREERTOS_USE_TRACE_FACILITY: y
+      CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS: y
+      CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID: y
+
+button:
+  - platform: template
+    name: Print task debug info
+    icon: mdi:bug-outline
+    entity_category: diagnostic
+    on_press: 
+      then:
+        - lambda: |-
+            static const char *const TAG = "task_debug";
+
+            #if !defined(configUSE_TRACE_FACILITY) || (configUSE_TRACE_FACILITY != 1)
+            ESP_LOGW(TAG, "Task debug unavailable: configUSE_TRACE_FACILITY is disabled");
+            return;
+            #else
+
+            unsigned int task_count = uxTaskGetNumberOfTasks();
+            auto *tasks = static_cast<TaskStatus_t *>(malloc(task_count * sizeof(TaskStatus_t)));
+            if (tasks == nullptr) {
+              ESP_LOGW(TAG, "Failed to allocate task status buffer for %u tasks", task_count);
+              return;
+            }
+
+            #if defined(configGENERATE_RUN_TIME_STATS) && (configGENERATE_RUN_TIME_STATS == 1)
+            configRUN_TIME_COUNTER_TYPE total_run_time = 0;
+            task_count = uxTaskGetSystemState(tasks, task_count, &total_run_time);
+            total_run_time /= 100UL;
+            if (total_run_time == 0) {
+              ESP_LOGW(TAG, "Run-time stats unavailable (total run-time counter is 0)");
+              free(tasks);
+              return;
+            }
+            #else
+            task_count = uxTaskGetSystemState(tasks, task_count, nullptr);
+            #endif
+
+            ESP_LOGD(
+                TAG,
+                "|   | %-*s | %-4s | %-6s | %-10s | %-5s | %-4s |",
+                static_cast<int>(configMAX_TASK_NAME_LEN),
+                "Name",
+                "Prio",
+                "Stack",
+                "Run Time",
+                "%Time",
+                "Core");
+
+            for (unsigned int i = 0; i < task_count; i++) {
+              const auto &task = tasks[i];
+
+              char state = '?';
+              switch (task.eCurrentState) {
+                case eRunning:
+                  state = 'X';
+                  break;
+                case eReady:
+                  state = 'R';
+                  break;
+                case eBlocked:
+                  state = 'B';
+                  break;
+                case eSuspended:
+                  state = 'S';
+                  break;
+                case eDeleted:
+                  state = 'D';
+                  break;
+                case eInvalid:
+                  state = '?';
+                  break;
+              }
+
+              char runtime_percent_text[16] = "n/a";
+              unsigned long long run_time_counter = 0;
+
+              #if defined(configGENERATE_RUN_TIME_STATS) && (configGENERATE_RUN_TIME_STATS == 1)
+              run_time_counter = static_cast<unsigned long long>(task.ulRunTimeCounter);
+              const unsigned long run_time_percent =
+                  static_cast<unsigned long>(task.ulRunTimeCounter / total_run_time);
+              if (run_time_percent == 0UL) {
+                snprintf(runtime_percent_text, sizeof(runtime_percent_text), "< 1%%");
+              } else {
+                snprintf(runtime_percent_text, sizeof(runtime_percent_text), "%3lu%%", run_time_percent);
+              }
+              #endif
+
+              int core_id = -1;
+              #if defined(configTASKLIST_INCLUDE_COREID) && (configTASKLIST_INCLUDE_COREID == 1)
+              core_id = (task.xCoreID == static_cast<BaseType_t>(0x7FFFFFFF))
+                            ? -1
+                            : static_cast<int>(task.xCoreID);
+              #endif
+
+              if (task.usStackHighWaterMark < 256) {
+                ESP_LOGD(
+                    TAG,
+                    "| %c | %-*s | %-4u | %-6lu | %-10llu | %5s | %4d |",
+                    state,
+                    16,
+                    task.pcTaskName,
+                    static_cast<unsigned int>(task.uxBasePriority),
+                    static_cast<unsigned long>(task.usStackHighWaterMark),
+                    run_time_counter,
+                    runtime_percent_text,
+                    core_id);
+              } else {
+                ESP_LOGD(
+                    TAG,
+                    "| %c | %-*s | %-4u | %-6lu | %-10llu | %5s | %4d |",
+                    state,
+                    16,
+                    task.pcTaskName,
+                    static_cast<unsigned int>(task.uxBasePriority),
+                    static_cast<unsigned long>(task.usStackHighWaterMark),
+                    run_time_counter,
+                    runtime_percent_text,
+                    core_id);
+              }
+            }
+
+            free(tasks);
+            #endif
+
