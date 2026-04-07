@@ -40,16 +40,14 @@ button:
             task_count = uxTaskGetSystemState(tasks, task_count, nullptr);
             #endif
 
-            ESP_LOGD(
-                TAG,
-                "|   | %-*s | %-4s | %-6s | %-10s | %-5s | %-4s |",
-                static_cast<int>(configMAX_TASK_NAME_LEN),
-                "Name",
-                "Prio",
-                "Stack",
-                "Run Time",
-                "%Time",
-                "Core");
+            ESP_LOGD(TAG, "|   | %-*s | %-4s | %-6s | %-10s | %-5s | %-4s |",
+                    static_cast<int>(configMAX_TASK_NAME_LEN),
+                    "Name",
+                    "Prio",
+                    "Stack",
+                    "Run Time",
+                    "%Time",
+                    "Core");
 
             for (unsigned int i = 0; i < task_count; i++) {
               const auto &task = tasks[i];
@@ -97,33 +95,16 @@ button:
                             : static_cast<int>(task.xCoreID);
               #endif
 
-              if (task.usStackHighWaterMark < 256) {
-                ESP_LOGD(
-                    TAG,
-                    "| %c | %-*s | %-4u | %-6lu | %-10llu | %5s | %4d |",
-                    state,
-                    16,
-                    task.pcTaskName,
-                    static_cast<unsigned int>(task.uxBasePriority),
-                    static_cast<unsigned long>(task.usStackHighWaterMark),
-                    run_time_counter,
-                    runtime_percent_text,
-                    core_id);
-              } else {
-                ESP_LOGD(
-                    TAG,
-                    "| %c | %-*s | %-4u | %-6lu | %-10llu | %5s | %4d |",
-                    state,
-                    16,
-                    task.pcTaskName,
-                    static_cast<unsigned int>(task.uxBasePriority),
-                    static_cast<unsigned long>(task.usStackHighWaterMark),
-                    run_time_counter,
-                    runtime_percent_text,
-                    core_id);
-              }
+              ESP_LOGD(TAG, "| %c | %-*s | %-4u | %-6lu | %-10llu | %5s | %4d |",
+                      state,
+                      16,
+                      task.pcTaskName,
+                      static_cast<unsigned int>(task.uxBasePriority),
+                      static_cast<unsigned long>(task.usStackHighWaterMark),
+                      run_time_counter,
+                      runtime_percent_text,
+                      core_id);
             }
 
             free(tasks);
             #endif
-
