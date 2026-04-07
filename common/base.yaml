@@ -22,6 +22,7 @@ wifi:
     password: !secret ap_password
   reboot_timeout: 5min
   min_auth_mode: WPA2
+  fast_connect: true
 
 api:
   reboot_timeout: 0s
